@@ -75,9 +75,18 @@ export class WhatsAppService {
             const isGroup = msg.key.remoteJid?.endsWith('@g.us');
             const senderJid = isGroup ? msg.key.participant : msg.key.remoteJid;
             
-            // Allow testing if you message yourself (fromMe is true), OR if the sender is in allowedNumbers
-            let isAuthorized = msg.key.fromMe || false;
-            if (!isAuthorized && senderJid) {
+            // Do not reply to your own outgoing messages, UNLESS you are messaging yourself ("Message Yourself" chat)
+            const botJid = this.sock?.user?.id?.split(':')[0];
+            const isMessagingSelf = botJid ? msg.key.remoteJid?.includes(botJid) : false;
+            
+            if (msg.key.fromMe && !isMessagingSelf) {
+                console.log(`[DEBUG] Ignoring outgoing message to someone else.`);
+                return;
+            }
+
+            // Check if sender is in the dashboard whitelist
+            let isAuthorized = false;
+            if (senderJid) {
                 const numericSenderJid = senderJid.replace(/\D/g, '');
                 isAuthorized = this.config.allowedNumbers.some(num => {
                     const cleanNum = num.replace(/\D/g, '');
