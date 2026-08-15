@@ -89,13 +89,17 @@ export class WhatsAppService {
             if (senderJid) {
                 const numericSenderJid = senderJid.replace(/\D/g, '');
                 isAuthorized = this.config.allowedNumbers.some(num => {
-                    const cleanNum = num.replace(/\D/g, '');
-                    return cleanNum.length > 0 && numericSenderJid.includes(cleanNum);
+                    let cleanNum = num.replace(/\D/g, '');
+                    // Strip leading zeros (common in local numbers, but WhatsApp JIDs drop them)
+                    cleanNum = cleanNum.replace(/^0+/, '');
+                    return cleanNum.length > 5 && numericSenderJid.includes(cleanNum);
                 });
             }
             
             if (!isAuthorized) {
-                console.log(`[DEBUG] Sender ${senderJid} is not in allowed list, ignoring.`);
+                const debugStr = `[DEBUG] Sender ${senderJid} rejected. Config: ${JSON.stringify(this.config.allowedNumbers)}, Keyword: ${this.config.triggerKeyword}`;
+                require('fs').appendFileSync('debug.log', debugStr + '\n');
+                console.log(debugStr);
                 return;
             }
 
