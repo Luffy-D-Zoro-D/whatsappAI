@@ -71,26 +71,19 @@ export class WhatsAppService {
                 return;
             }
 
-            // Check if sender matches any allowed phone numbers
+            // Determine the true sender's JID
             const isGroup = msg.key.remoteJid?.endsWith('@g.us');
             const senderJid = isGroup ? msg.key.participant : msg.key.remoteJid;
-            
-            // Do not reply to your own outgoing messages, UNLESS you are messaging yourself ("Message Yourself" chat)
-            const botJid = this.sock?.user?.id?.split(':')[0];
-            const isMessagingSelf = botJid ? msg.key.remoteJid?.includes(botJid) : false;
-            
-            if (msg.key.fromMe && !isMessagingSelf) {
-                console.log(`[DEBUG] Ignoring outgoing message to someone else.`);
-                return;
-            }
 
             // Check if sender is in the dashboard whitelist
-            let isAuthorized = false;
-            if (senderJid) {
+            // You (the bot owner) are always authorized to use the bot
+            let isAuthorized = msg.key.fromMe || false;
+            
+            // For other people messaging you, they MUST be in the whitelist
+            if (!isAuthorized && senderJid) {
                 const numericSenderJid = senderJid.replace(/\D/g, '');
                 isAuthorized = this.config.allowedNumbers.some(num => {
                     let cleanNum = num.replace(/\D/g, '');
-                    // Strip leading zeros (common in local numbers, but WhatsApp JIDs drop them)
                     cleanNum = cleanNum.replace(/^0+/, '');
                     return cleanNum.length > 5 && numericSenderJid.includes(cleanNum);
                 });
