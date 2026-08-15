@@ -78,7 +78,11 @@ export class WhatsAppService {
             // Allow testing if you message yourself (fromMe is true), OR if the sender is in allowedNumbers
             let isAuthorized = msg.key.fromMe || false;
             if (!isAuthorized && senderJid) {
-                isAuthorized = this.config.allowedNumbers.some(num => senderJid.includes(num));
+                const numericSenderJid = senderJid.replace(/\D/g, '');
+                isAuthorized = this.config.allowedNumbers.some(num => {
+                    const cleanNum = num.replace(/\D/g, '');
+                    return cleanNum.length > 0 && numericSenderJid.includes(cleanNum);
+                });
             }
             
             if (!isAuthorized) {
