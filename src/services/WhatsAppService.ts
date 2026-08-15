@@ -96,15 +96,27 @@ export class WhatsAppService {
                 return;
             }
 
-            const triggerKeyword = this.config.triggerKeyword?.toLowerCase();
+            // Keyword Logic
+            const isOwner = msg.key.fromMe || false;
             
-            if (triggerKeyword && triggerKeyword.trim() !== '') {
-                if (!text.toLowerCase().includes(triggerKeyword)) {
-                    console.log(`[DEBUG] Message does not contain '${triggerKeyword}', ignoring.`);
+            if (isOwner) {
+                // Owner MUST always use @botty to prevent the bot from replying to every single personal text
+                if (!text.toLowerCase().includes('@botty')) {
+                    console.log(`[DEBUG] Owner message does not contain '@botty', ignoring.`);
                     return;
                 }
             } else {
-                console.log(`[DEBUG] No trigger keyword set. Replying to ALL messages.`);
+                // Friends use whatever keyword is set in the dashboard (or none if it's blank)
+                const triggerKeyword = this.config.triggerKeyword?.toLowerCase();
+                
+                if (triggerKeyword && triggerKeyword.trim() !== '') {
+                    if (!text.toLowerCase().includes(triggerKeyword)) {
+                        console.log(`[DEBUG] Message does not contain '${triggerKeyword}', ignoring.`);
+                        return;
+                    }
+                } else {
+                    console.log(`[DEBUG] No trigger keyword set. Replying to ALL messages from allowed friend.`);
+                }
             }
 
             console.log(`[DEBUG] All checks passed! Requesting AI response for: "${text}"`);
