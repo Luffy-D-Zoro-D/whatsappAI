@@ -2,14 +2,23 @@ import express from 'express';
 import cors from 'cors';
 import { Config } from './models/Config';
 import path from 'path';
+import { WhatsAppService } from './services/WhatsAppService';
 
-export const startServer = (memoryConfig: { allowedNumbers: string[], triggerKeyword: string }) => {
+export const startServer = (memoryConfig: { allowedNumbers: string[], triggerKeyword: string }, whatsappService: WhatsAppService) => {
     const app = express();
     app.use(cors());
     app.use(express.json());
 
     // Serve premium frontend
     app.use(express.static(path.join(__dirname, '../public')));
+
+    // Status endpoint for frontend QR
+    app.get('/api/status', (req, res) => {
+        res.json({
+            connected: whatsappService.isConnected,
+            qr: whatsappService.currentQrCode
+        });
+    });
 
     app.get('/api/config', async (req, res) => {
         try {

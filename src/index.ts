@@ -36,11 +36,11 @@ async function bootstrap() {
         console.warn('⚠️ No MONGODB_URI set. Running entirely in-memory for testing.');
     }
 
-    // Start Express Dashboard
-    startServer(memoryConfig);
-
     const aiService = new AIService();
     const whatsappService = new WhatsAppService(aiService, memoryConfig);
+
+    // Start Express Dashboard and pass whatsappService
+    startServer(memoryConfig, whatsappService);
 
     await whatsappService.initialize();
 }

@@ -84,5 +84,36 @@ function showToast(msg) {
     }, 3000);
 }
 
+// QR Code Polling
+const STATUS_API_URL = '/api/status';
+const qrSection = document.getElementById('qrSection');
+const connectedSection = document.getElementById('connectedSection');
+const qrImage = document.getElementById('qrImage');
+
+async function checkStatus() {
+    try {
+        const res = await fetch(STATUS_API_URL);
+        const data = await res.json();
+        
+        if (data.connected) {
+            qrSection.style.display = 'none';
+            connectedSection.style.display = 'block';
+        } else if (data.qr) {
+            qrImage.src = data.qr;
+            qrSection.style.display = 'block';
+            connectedSection.style.display = 'none';
+        } else {
+            qrSection.style.display = 'none';
+            connectedSection.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Failed to get status', err);
+    }
+}
+
+// Poll status every 3 seconds
+setInterval(checkStatus, 3000);
+checkStatus();
+
 // Initial load
 loadConfig();

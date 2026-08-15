@@ -1,5 +1,5 @@
 import { makeWASocket, useMultiFileAuthState, DisconnectReason } from '@whiskeysockets/baileys';
-import qrcode from 'qrcode-terminal';
+import QRCode from 'qrcode';
 import pino from 'pino';
 import { AIService } from './AIService';
 
@@ -7,6 +7,9 @@ export class WhatsAppService {
     private sock: ReturnType<typeof makeWASocket> | null = null;
     private aiService: AIService;
     private config: { allowedNumbers: string[], triggerKeyword: string };
+
+    public currentQrCode: string | null = null;
+    public isConnected: boolean = false;
 
     constructor(aiService: AIService, config: { allowedNumbers: string[], triggerKeyword: string }) {
         this.aiService = aiService;
@@ -28,11 +31,16 @@ export class WhatsAppService {
             const { connection, lastDisconnect, qr } = update;
             
             if (qr) {
-                console.log('Scan this QR code with WhatsApp:');
-                qrcode.generate(qr, { small: true });
+                console.log('QR Code generated. Available on the web dashboard!');
+                try {
+                    this.currentQrCode = await QRCode.toDataURL(qr);
+                } catch (err) {
+                    console.error('Failed to generate QR data URL', err);
+                }
             }
             
             if (connection === 'close') {
+                this.isConnected = false;
                 const shouldReconnect = (lastDisconnect?.error as any)?.output?.statusCode !== DisconnectReason.loggedOut;
                 if (shouldReconnect) {
                     console.log('Connection closed, reconnecting in 3s...');
@@ -41,6 +49,8 @@ export class WhatsAppService {
                     console.log('Logged out from WhatsApp. Please delete whatsapp-auth folder.');
                 }
             } else if (connection === 'open') {
+                this.isConnected = true;
+                this.currentQrCode = null;
                 console.log('WhatsApp Client is READY!');
             }
         });
