@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Botty Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="background-mesh">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+    
+    <div class="dashboard-container glass">
+        <header>
+            <div class="logo">🤖</div>
+            <h1>Botty Config</h1>
+            <p>Manage your AI WhatsApp Assistant</p>
+        </header>
+
+        <section class="config-section">
+            <h2>Trigger Keyword</h2>
+            <p class="subtitle">The bot will only reply to messages containing this word.</p>
+            <div class="input-group">
+                <input type="text" id="triggerKeywordInput" placeholder="e.g. @Botty or leave blank for all">
+                <button id="saveTriggerBtn" class="btn primary">Save</button>
+            </div>
+        </section>
+
+        <section class="config-section">
+            <h2>Allowed Phone Numbers</h2>
+            <p class="subtitle">Only these numbers can interact with the bot.</p>
+            
+            <ul id="phoneList" class="phone-list">
+                <!-- Numbers injected here -->
+            </ul>
+
+            <div class="input-group mt-2">
+                <input type="text" id="newPhoneInput" placeholder="e.g. 919876543210">
+                <button id="addPhoneBtn" class="btn secondary">Add Number</button>
+            </div>
+        </section>
+
+        <div id="toast" class="toast">Settings Saved!</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

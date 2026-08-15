@@ -6,9 +6,11 @@ import { AIService } from './AIService';
 export class WhatsAppService {
     private sock: ReturnType<typeof makeWASocket> | null = null;
     private aiService: AIService;
+    private config: { allowedNumbers: string[], triggerKeyword: string };
 
-    constructor(aiService: AIService) {
+    constructor(aiService: AIService, config: { allowedNumbers: string[], triggerKeyword: string }) {
         this.aiService = aiService;
+        this.config = config;
     }
 
     async initialize() {
@@ -59,27 +61,22 @@ export class WhatsAppService {
                 return;
             }
 
-            const targetPhone = process.env.TARGET_PHONE_NUMBER;
-            if (!targetPhone) {
-                console.warn('TARGET_PHONE_NUMBER not set in .env');
-                return;
-            }
-
-            // Check if sender matches target phone number
+            // Check if sender matches any allowed phone numbers
             const isGroup = msg.key.remoteJid?.endsWith('@g.us');
             const senderJid = isGroup ? msg.key.participant : msg.key.remoteJid;
             
-            console.log(`[DEBUG] senderJid: ${senderJid}, targetPhone: ${targetPhone}`);
-
-            // Allow testing if you message yourself (fromMe is true), OR if the sender matches targetPhone
-            const isAuthorized = senderJid?.includes(targetPhone) || msg.key.fromMe;
+            // Allow testing if you message yourself (fromMe is true), OR if the sender is in allowedNumbers
+            let isAuthorized = msg.key.fromMe || false;
+            if (!isAuthorized && senderJid) {
+                isAuthorized = this.config.allowedNumbers.some(num => senderJid.includes(num));
+            }
             
             if (!isAuthorized) {
-                console.log(`[DEBUG] Sender does not match target phone, ignoring.`);
+                console.log(`[DEBUG] Sender ${senderJid} is not in allowed list, ignoring.`);
                 return;
             }
 
-            const triggerKeyword = process.env.BOT_TRIGGER_KEYWORD?.toLowerCase();
+            const triggerKeyword = this.config.triggerKeyword?.toLowerCase();
             
             if (triggerKeyword && triggerKeyword.trim() !== '') {
                 if (!text.toLowerCase().includes(triggerKeyword)) {
