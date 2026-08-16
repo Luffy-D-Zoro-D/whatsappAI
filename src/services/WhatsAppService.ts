@@ -83,29 +83,69 @@ export class WhatsAppService {
             if (!isAuthorized && senderJid) {
                 const numericSenderJid = senderJid.replace(/\D/g, '');
                 isAuthorized = this.config.allowedNumbers.some(num => {
+                    const trimmed = num.trim().toLowerCase();
+                    if (trimmed === '*' || trimmed === 'all') return true;
+                    
                     let cleanNum = num.replace(/\D/g, '');
                     cleanNum = cleanNum.replace(/^0+/, '');
                     return cleanNum.length > 5 && numericSenderJid.includes(cleanNum);
                 });
             }
             
-            if (!isAuthorized) {
-                const debugStr = `[DEBUG] Sender ${senderJid} rejected. Config: ${JSON.stringify(this.config.allowedNumbers)}, Keyword: ${this.config.triggerKeyword}`;
-                require('fs').appendFileSync('debug.log', debugStr + '\n');
-                console.log(debugStr);
-                return;
-            }
-
             // Keyword Logic
             const isOwner = msg.key.fromMe || false;
             
             if (isOwner) {
+                const lowerText = text.toLowerCase();
+                
                 // Owner MUST always use @botty to prevent the bot from replying to every single personal text
-                if (!text.toLowerCase().includes('@botty')) {
+                if (!lowerText.includes('@botty')) {
                     console.log(`[DEBUG] Owner message does not contain '@botty', ignoring.`);
                     return;
                 }
+
+                // NEW FEATURE: Intercept `@botty allow` to easily whitelist LIDs without checking logs
+                if (lowerText.includes('@botty allow')) {
+                    const repliedToJid = msg.message?.extendedTextMessage?.contextInfo?.participant;
+                    
+                    if (repliedToJid) {
+                        if (!this.config.allowedNumbers.includes(repliedToJid)) {
+                            this.config.allowedNumbers.push(repliedToJid);
+                            
+                            // Attempt to save to MongoDB if available
+                            try {
+                                const { Config } = require('../models/Config');
+                                if (process.env.MONGODB_URI) {
+                                    Config.findOne().then((doc: any) => {
+                                        if (doc) {
+                                            doc.allowedNumbers = this.config.allowedNumbers;
+                                            doc.save();
+                                        }
+                                    });
+                                }
+                            } catch (e) {
+                                console.error('[DEBUG] Failed to save new allowed number to DB', e);
+                            }
+
+                            const sendTo = msg.key.remoteJid!;
+                            await this.sock!.sendMessage(sendTo, { text: `✅ *Botty*: Successfully whitelisted user!\nThey can now talk to me.` }, { quoted: msg });
+                            console.log(`[DEBUG] Whitelisted JID via owner command: ${repliedToJid}`);
+                        } else {
+                            const sendTo = msg.key.remoteJid!;
+                            await this.sock!.sendMessage(sendTo, { text: `⚠️ *Botty*: User is already whitelisted.` }, { quoted: msg });
+                        }
+                        return; // Stop processing further for this command
+                    }
+                }
+
             } else {
+                if (!isAuthorized) {
+                    const debugStr = `[DEBUG] Sender ${senderJid} rejected. Config: ${JSON.stringify(this.config.allowedNumbers)}, Keyword: ${this.config.triggerKeyword}`;
+                    require('fs').appendFileSync('debug.log', debugStr + '\n');
+                    console.log(debugStr);
+                    return;
+                }
+
                 // Friends use whatever keyword is set in the dashboard (or none if it's blank)
                 const triggerKeyword = this.config.triggerKeyword?.toLowerCase();
                 
